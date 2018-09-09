@@ -1,0 +1,314 @@
+/*
+Registers that need a SYNCDELAY
+FIFORESET     FIFOPINPOLAR
+INPKTEND      EPxBCH:L
+EPxFIFOPFH:L  EPxAUTOINLENH:L
+EPxFIFOCFG    EPxGPIFFLGSEL
+PINFLAGSAB    PINFLAGSCD
+EPxFIFOIE     EPxFIFOIRQ
+GPIFIE        GPIFIRQ
+UDMACRCH:L    GPIFADRH:L
+GPIFTRIG      EPxGPIFTRIG
+OUTPKTEND     REVCTL
+GPIFTCB3      GPIFTCB2
+GPIFTCB1      GPIFTCB0
+*/
+//SIGNAL-PORT MAPPING
+//ZTEX      INTERFACE
+//          FXCLK
+//          IFCLK
+//PB0-PB7   FD0-FD7
+//PD0-PD7   FD8-FD15
+//PA2       SLOE
+//PA4-PA5   FIFOADDR0-FIFOADDR1
+//PA6       PKTEND
+//PA7       FLAGD
+//          SLRD
+//          SLWR
+//          FLAGA
+//          FLAGB
+//          FLAGC
+//          FLAGD
+
+#include[ztex-conf.h]	// Loads the configuration macros, see ztex-conf.h for the available macros
+#include[ztex-utils.h]	// include basic functions
+
+// configure endpoint 2, OUT (Host Perspective), double buffered, 512 bytes, interface 0
+EP_CONFIG(2,0,BULK,OUT,512,2);
+// configure endpoint 4, OUT (Host Perspective), double buffered, 512 bytes, interface 0
+EP_CONFIG(4,0,BULK,OUT,512,2);
+// configure endpoint 6, IN (Host Perspective), single buffered, 512 bytes, interface 0
+EP_CONFIG(6,0,BULK,IN,512,1);
+
+// select ZTEX USB FPGA Module 1.15 as target  (required for FPGA configuration)
+IDENTITY_UFM_1_15Y(10.15.0.0,0);
+
+// this product string is also used for identification by the host software
+#define[PRODUCT_STRING]["FX2 ZTEX 1.15y Firmware for CSA"]
+
+// enables high speed FPGA configuration via EP2
+ENABLE_HS_FPGA_CONF(2);
+
+/*Is executed after a FPGA configuration*/
+/*NOTE: The Configuration of all the Ports is in the Post FPGA Config Routine, because the configuration
+of the FPGAs uses a OUT Endpoint, which we have to reconfigure again if we want to use it.*/
+#define[POST_FPGA_CONFIG][POST_FPGA_CONFIG
+	//Reset High
+	IOC0 = 1;
+	//CLK Reset High
+	IOC1 = 1;
+	//clken_n
+	IOC2 = 1;
+	OEC = bmBIT0 | bmBIT1 | bmBIT2;
+    
+    /*
+    BIT 1 (DYN_OUT): Disable Auto-Arming of Endpoints when transitioning to AUTOOUT
+    BIT 0 (ENH_PKT): Allows the CPU additional Packet Handling
+    NOTE: There is still a somewhat undocumented error occuring when these bits are set and the fifos
+    are reset, where when trying to use the AUTOOUT feature the OUT EPs are not armed correctly and
+    the EP Full flags are high, where as the respective FIFOs are Empty. 
+    According to a user this occurs when the the FIFO reset is not done initialy after a power-on
+    reset (e.g. Other firmware is loaded from EEPROM before this firmware is loaded) and the REVCTL 
+    bits are set.
+    In a Forum it is suggested to set the bits (essentialy enabling the "manual" mode), reseting 
+    all configurations, do all the priming and then reseting the REVCTL bist and doing the required 
+    configuration. After this procedure the EPs are AUTOarmed correctly.
+    */
+    //Set for Initial RESET
+	REVCTL = bmBIT1 | bmBIT0;
+	SYNCDELAY;
+    
+    //Clear STALL Bits
+	EP2CS &= ~bmBIT0;
+	SYNCDELAY;
+	EP4CS &= ~bmBIT0;
+	SYNCDELAY;
+	EP6CS &= ~bmBIT0;
+	SYNCDELAY;
+    
+    
+    //NOTE: Inverse Polarity is used, because of the increased setup time to read out the
+    //slave FIFO Signals. (Experiments showed that it is necessary in our case)
+    //Internal IFCLK, 48 MHz, IFCLKOE, inverse polarity, synchronous, no GSTATE, Slave FIFO
+	IFCONFIG = bmBIT7 | bmBIT6 | bmBIT5 | bmBIT4 | bmBIT1 | bmBIT0;
+	SYNCDELAY;
+	//FLAGA = EP2 EMPTY, FLAGB = EP4 EMPTY
+	PINFLAGSAB = bmBIT7 | bmBIT4 | bmBIT3;
+	SYNCDELAY;
+	//FLAGC = EP6 EMPTY, FLAGD = EP6 PF (Programmable Flag)
+	PINFLAGSCD = bmBIT6 | bmBIT5 | bmBIT3 | bmBIT1;
+	SYNCDELAY;
+	//Enable FLAGD output
+	PORTACFG = bmBIT7;
+	SYNCDELAY;
+	//Set PKTEND,SLOE,SLRD,SLWR,EF,FF as High Active
+	FIFOPINPOLAR = bmBIT5 | bmBIT4 | bmBIT3 | bmBIT2 | bmBIT1 | bmBIT0;
+	SYNCDELAY;
+	
+	/*INITIAL FIFO RESET*/
+	
+	//Reset FIFO Configurations
+	EP2FIFOCFG = 0;
+	SYNCDELAY; 
+	EP4FIFOCFG = 0;
+	SYNCDELAY; 
+	EP6FIFOCFG = 0;
+	SYNCDELAY; 
+	EP8FIFOCFG = 0;
+	SYNCDELAY; 
+	
+	//Reset FIFOs
+	FIFORESET = 0x80;
+	SYNCDELAY;
+	FIFORESET = 0x02;
+	SYNCDELAY;
+	FIFORESET = 0x04;
+	SYNCDELAY;
+	FIFORESET = 0x06;
+	SYNCDELAY;
+	FIFORESET = 0x00;
+	SYNCDELAY;
+	
+	//Arm all OUT EP
+	OUTPKTEND = 0x82;
+	SYNCDELAY;
+	OUTPKTEND = 0x82;
+	SYNCDELAY;
+	OUTPKTEND = 0x84;
+	SYNCDELAY;
+	OUTPKTEND = 0x84;
+	SYNCDELAY;
+	//EMPTY IN EP
+	EP6BCL = 0;
+	SYNCDELAY;
+	
+	/*RESET REVCTL AND CONFIGURE FIFOs*/
+	REVCTL = 0;
+	SYNCDELAY;
+	
+	//AUTOOUT, 8 Bit Mode
+	EP2FIFOCFG = bmBIT4;
+	SYNCDELAY;
+	//AUTOOUT, 8 Bit Mode
+	EP4FIFOCFG = bmBIT4;
+	SYNCDELAY;
+	//AUTOIN, 8 Bit Mode
+	EP6FIFOCFG = bmBIT3;
+	SYNCDELAY;
+    //EP6 PF asserts when <= 0 commited Packets and 8 uncommited Bytes
+	EP6FIFOPFH = 0;
+	SYNCDELAY;
+	EP6FIFOPFL = bmBIT3;
+	SYNCDELAY;
+    //EP6 Auto Arm in 9 Bytes
+    EP6AUTOINLENH = 0;
+	SYNCDELAY;
+	EP6AUTOINLENL = 9;
+	SYNCDELAY;    
+    
+    //DCM_CLKGEN Reset has to be high for at least 3 CLKIN Cycles (ca 63 ns)
+    //But we wait 20 ms, inorder to be sure that all is reseted.
+    wait(20);
+    
+	//Reset Low
+	IOC0 = 0;
+	//CLK Reset Low
+	IOC1 = 0;
+	//clken_n Low
+	IOC2 = 0;
+]
+
+/*NOTE: This Routine is important, because each FPGA is latching this Control Signals as long as the 
+Chip Select Signal is valid. The latching is done, because of the Chip Select nature of the Board when
+we want to disable/suspend a FPGA core, but still want to communicate with others. So as long as
+we don't explicitly disable a control signal (e.g. via aVendor Command), for the FPGA it is not changing.*/
+__xdata BYTE OLD_IOC[NUMBER_OF_FPGAS];
+/*Is executed before a FPGA select*/
+#define[PRE_FPGA_SELECT][PRE_FPGA_SELECT
+    //Backup and Restore Port C (RESET, CLK_RESET, CLKEN_N)
+    OLD_IOC[prev_select_num] = IOC;
+    IOC = OLD_IOC[select_num];
+]
+
+/* *********************************************************************
+   ***** EP0 vendor command 0x80 ***************************************
+   ********************************************************************* */
+//SUSPEND FPGA
+ADD_EP0_VENDOR_COMMAND((0x80,,
+    //clken_n High
+    IOC2 = 1;
+,,
+    NOP;
+));; 
+
+/* *********************************************************************
+   ***** EP0 vendor command 0x81 ***************************************
+   ********************************************************************* */
+//RESUME FPGA
+ADD_EP0_VENDOR_COMMAND((0x81,,
+    //clken_n Low
+    IOC2 = 0;
+,,
+    NOP;
+));;
+
+/* *********************************************************************
+   ***** EP0 vendor command 0x83 ***************************************
+   ********************************************************************* */
+//Reset FPGA 
+//(NOTE: This resets only the Bruteforce Core, the read in data is preserved)
+ADD_EP0_VENDOR_COMMAND((0x82,,
+    //Reset High
+	IOC0 = 1;
+	
+	wait(20);
+	
+	//Reset Low
+	IOC0 = 0;
+,,
+    NOP;
+));;
+
+/* *********************************************************************
+   ***** EP0 vendor command 0x83 ***************************************
+   ********************************************************************* */
+//Reset FPGA CLK
+ADD_EP0_VENDOR_COMMAND((0x83,,
+	//CLK Reset High
+	IOC1 = 1;
+	
+	//DCM_CLKGEN Reset has to be high for at least 3 CLKIN Cycles (ca 63 ns)
+    //But we wait 20 ms, inorder to be sure that all is reseted.
+	wait(20);
+	
+	//CLK Reset Low
+	IOC1 = 0;
+,,
+    NOP;
+));;
+
+/* *********************************************************************
+   ***** EP0 vendor request 0x84 ***************************************
+   ********************************************************************* */
+//This Vendor Request is used to read out the current status of the FIFOs and EPs
+void debug() {
+    EP0BUF[0] = 0xAA;
+    SYNCDELAY;
+    EP0BUF[1] = EP2CS;
+    SYNCDELAY;
+    EP0BUF[2] = EP4CS;
+    SYNCDELAY;
+    EP0BUF[3] = EP6CS;
+    SYNCDELAY;
+    EP0BUF[4] = EP24FIFOFLGS;
+    SYNCDELAY;
+    EP0BUF[5] = EP68FIFOFLGS;
+    SYNCDELAY;
+    EP0BUF[6] = EP2BCH;
+    SYNCDELAY;
+    EP0BUF[7] = EP2BCL;
+    SYNCDELAY;
+    EP0BUF[8] = EP4BCH;
+    SYNCDELAY;
+    EP0BUF[9] = EP4BCL;
+    SYNCDELAY;
+    EP0BUF[10] = EP6BCH;
+    SYNCDELAY;
+    EP0BUF[11] = EP6BCL;
+    SYNCDELAY;
+    EP0BUF[12] = EP2FIFOBCH;
+    SYNCDELAY;
+    EP0BUF[13] = EP2FIFOBCL;
+    SYNCDELAY;
+    EP0BUF[14] = EP4FIFOBCH;
+    SYNCDELAY;
+    EP0BUF[15] = EP4FIFOBCL;
+    SYNCDELAY;
+    EP0BUF[16] = EP6FIFOBCH;
+    SYNCDELAY;
+    EP0BUF[17] = EP6FIFOBCL;
+    SYNCDELAY;
+    
+    EP0BCH = 0;
+    SYNCDELAY;
+    EP0BCL = 18;
+}   
+ADD_EP0_VENDOR_REQUEST((0x84,,
+    debug();
+,,
+    NOP;
+));;
+
+// include the main part of the firmware kit, define the descriptors, ...
+#include[ztex.h]
+
+void main(void)	
+{
+    init_USB();
+
+    while (1) {
+        //twiddle thumbs
+        //and think about life and stuff...
+    }
+}
+

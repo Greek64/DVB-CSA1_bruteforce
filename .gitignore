@@ -1,0 +1,21 @@
+#Ignore the whole xilinx Directory
+/xilinx/**
+
+#Unignore all directories (Needed to unignore files inside ignored directories)
+!*/
+
+
+#******************Whitelist******************
+!*.gitignore
+#Modelsim
+!*.do
+#Xilinx
+!*.xise
+!*.ucf
+!*.bit
+!*.xdc
+!*.xpr
+
+#******************IGNORE******************
+#Ignore Log Files
+*log

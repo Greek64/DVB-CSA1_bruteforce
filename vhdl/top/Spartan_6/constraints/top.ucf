@@ -1,0 +1,258 @@
+#clk_ztex
+NET "clk_ztex" TNM_NET = "clk_ztex";
+NET "clk_ztex" LOC = L22;
+NET "clk_ztex" IOSTANDARD = LVCMOS33;
+#reset (PC0)
+NET "reset" LOC = G20;
+NET "reset" IOSTANDARD = LVCMOS33;
+#cs
+NET "cs" LOC = AB11;
+NET "cs" IOSTANDARD = LVCMOS33;
+#clk_reset (PC1)
+NET "clk_reset" LOC = T20;
+NET "clk_reset" IOSTANDARD = LVCMOS33;
+#clken_n (PC2)
+NET "clken_n" LOC = Y5;
+NET "clken_n" IOSTANDARD = LVCMOS33;
+#ifclk
+NET "ifclk" TNM_NET = "ifclk";
+NET "ifclk" LOC = K20;
+NET "ifclk" IOSTANDARD = LVCMOS33;
+#FIFO DATA
+#fifo_data(0) (PB0)
+NET "fifo_data[0]" LOC = Y17;
+NET "fifo_data[0]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[0]" DRIVE = 12;
+#fifo_data(1) (PB1)
+NET "fifo_data[1]" LOC = V13;
+NET "fifo_data[1]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[1]" DRIVE = 12;
+#fifo_data(2) (PB2)
+NET "fifo_data[2]" LOC = W13;
+NET "fifo_data[2]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[2]" DRIVE = 12;
+#fifo_data(3) (PB3)
+NET "fifo_data[3]" LOC = AA8;
+NET "fifo_data[3]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[3]" DRIVE = 12;
+#fifo_data(4) (PB4)
+NET "fifo_data[4]" LOC = AB8;
+NET "fifo_data[4]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[4]" DRIVE = 12;
+#fifo_data(5) (PB5)
+NET "fifo_data[5]" LOC = W6;
+NET "fifo_data[5]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[5]" DRIVE = 12;
+#fifo_data(6) (PB6)
+NET "fifo_data[6]" LOC = Y6;
+NET "fifo_data[6]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[6]" DRIVE = 12;
+#fifo_data(7) (PB7)
+NET "fifo_data[7]" LOC = Y9;
+NET "fifo_data[7]" IOSTANDARD = LVCMOS33;
+NET "fifo_data[7]" DRIVE = 12;
+#fifo2_empty (FLAG A)
+NET "fifo2_empty" LOC = F20;
+NET "fifo2_empty" IOSTANDARD = LVCMOS33;
+#fifo4_empty (FLAG B)
+NET "fifo4_empty" LOC = F19;
+NET "fifo4_empty" IOSTANDARD = LVCMOS33;
+#fifo6_empty (FLAG C)
+NET "fifo6_empty" LOC = F18;
+NET "fifo6_empty" IOSTANDARD = LVCMOS33;
+#fifo6_pf (FLAG D)
+NET "fifo6_pf" LOC = AB17;
+NET "fifo6_pf" IOSTANDARD = LVCMOS33;
+#FIFO CONTROL
+#fifo_addr(0) (PA4)
+NET "fifo_addr[0]" LOC = AB21;
+NET "fifo_addr[0]" IOSTANDARD = LVCMOS33;
+NET "fifo_addr[0]" DRIVE = 12;
+#fifo_addr(1) (PA5)
+NET "fifo_addr[1]" LOC = Y18;
+NET "fifo_addr[1]" IOSTANDARD = LVCMOS33;
+NET "fifo_addr[1]" DRIVE = 12;
+#sloe (PA2)
+NET "sloe" LOC = U15;
+NET "sloe" IOSTANDARD = LVCMOS33;
+NET "sloe" DRIVE = 12;
+#slrd
+NET "slrd" LOC = N22;
+NET "slrd" IOSTANDARD = LVCMOS33;
+NET "slrd" DRIVE = 12;
+#slwr
+NET "slwr" LOC = M22;
+NET "slwr" IOSTANDARD = LVCMOS33;
+NET "slwr" DRIVE = 12;
+#pktend (PA6)
+NET "pktend" LOC = AB5;
+NET "pktend" IOSTANDARD = LVCMOS33;
+NET "pktend" DRIVE = 12;
+# ID0
+NET "id[0]" LOC = T12;
+NET "id[0]" IOSTANDARD = LVCMOS33;
+# ID1
+NET "id[1]" LOC = R13;
+NET "id[1]" IOSTANDARD = LVCMOS33;
+
+#Timing Constrains of clk input Signals
+TIMESPEC TS_ifclk = PERIOD "ifclk" 33.333 ns HIGH 50 %;
+TIMESPEC TS_clk_ztex = PERIOD "clk_ztex" 20.833 ns HIGH 50%;
+
+#Ignore Cross-Clock Domain timing
+NET "slow_clk" TNM_NET = "slow_group";
+NET "clk" TNM_NET = "fast_group";
+TIMESPEC TS_slow_to_fast = FROM "slow_group" TO "fast_group" TIG ;
+TIMESPEC TS_fast_to_slow = FROM "fast_group" TO "slow_group" TIG ;
+
+#Ignore Timing on Latched Control Signals
+NET "clken_n_buf" TIG;
+NET "clk_reset_buf" TIG;
+NET "reset_buf" TIG;
+
+#Ignore Timing of core_control_unit Output Signals (found, done, key_out) 
+NET "fpga_top_inst/core_gen[*].*.core_control_unit_inst/found*" TNM = "output_group";
+NET "fpga_top_inst/core_gen[*].*.core_control_unit_inst/done*" TNM = "output_group";
+NET "fpga_top_inst/core_gen[*].*.core_control_unit_inst/key_out*" TNM = "output_group";
+TIMESPEC TS_output = FROM "output_group" TO "fast_group" TIG ;
+
+#Ignore Timing of core_control_unit Input Signals (cipher, start_cw/stop_cw)
+NET "input_data*" TNM = "input_top_group";
+NET "fpga_top_inst/core_gen[*].*.core_control_unit_inst/CB*" TNM = "input_core_group";
+NET "fpga_top_inst/core_gen[*].*.core_control_unit_inst/stop_cw_sig*" TNM = "input_core_group";
+TIMESPEC TS_input1 = FROM "input_top_group" TO "input_core_group" TIG;
+TIMESPEC TS_input2 = FROM "input_core_group" TO "input_core_group" TIG;
+
+
+#Input Timing Constraints
+INST "fifo_data<7>" TNM = data;
+INST "fifo_data<6>" TNM = data;
+INST "fifo_data<4>" TNM = data;
+INST "fifo_data<5>" TNM = data;
+INST "fifo_data<3>" TNM = data;
+INST "fifo_data<2>" TNM = data;
+INST "fifo_data<1>" TNM = data;
+INST "fifo_data<0>" TNM = data;
+INST "fifo2_empty" TNM = input;
+INST "fifo4_empty" TNM = input;
+INST "fifo6_empty" TNM = input;
+INST "fifo6_pf" TNM = input;
+INST "fifo_data<0>" TNM = input;
+INST "fifo_data<1>" TNM = input;
+INST "fifo_data<2>" TNM = input;
+INST "fifo_data<3>" TNM = input;
+INST "fifo_data<4>" TNM = input;
+INST "fifo_data<5>" TNM = input;
+INST "fifo_data<6>" TNM = input;
+INST "fifo_data<7>" TNM = input;
+TIMEGRP "input" OFFSET = IN 15 ns BEFORE "ifclk" RISING;
+#Output Timing Constraints
+INST "fifo_addr<0>" TNM = output;
+INST "fifo_addr<1>" TNM = output;
+INST "fifo_data<0>" TNM = output;
+INST "fifo_data<1>" TNM = output;
+INST "fifo_data<2>" TNM = output;
+INST "fifo_data<3>" TNM = output;
+INST "fifo_data<4>" TNM = output;
+INST "fifo_data<5>" TNM = output;
+INST "fifo_data<6>" TNM = output;
+INST "fifo_data<7>" TNM = output;
+INST "pktend" TNM = output;
+INST "sloe" TNM = output;
+INST "slrd" TNM = output;
+INST "slwr" TNM = output;
+TIMEGRP "output" OFFSET = OUT 18 ns AFTER "ifclk";
+
+##Specific Timings according to CY7C68013 Manual
+##Input Timing Constraints
+#INST "fifo_data<7>" TNM = data;
+#INST "fifo_data<6>" TNM = data;
+#INST "fifo_data<4>" TNM = data;
+#INST "fifo_data<5>" TNM = data;
+#INST "fifo_data<3>" TNM = data;
+#INST "fifo_data<2>" TNM = data;
+#INST "fifo_data<1>" TNM = data;
+#INST "fifo_data<0>" TNM = data;
+#INST "fifo2_empty" TNM = flags;
+#INST "fifo4_empty" TNM = flags;
+#INST "fifo6_empty" TNM = flags;
+#INST "fifo6_pf" TNM = flags;
+##FIFO DATA Setup=11ns
+#TIMEGRP "data" OFFSET = IN 11 ns BEFORE "ifclk" RISING;
+##FLAGS Setup=9.5ns
+#TIMEGRP "flags" OFFSET = IN 9.5 ns BEFORE "ifclk" RISING;
+##Output Timing Constraints
+#INST "fifo_addr<1>" TNM = addr;
+#INST "fifo_addr<0>" TNM = addr;
+#INST "pktend" TNM = pktend;
+#INST "sloe" TNM = sloe;
+#INST "slrd" TNM = slrd;
+#INST "slwr" TNM = slwr;
+##FIFO DATA Setup=9.2ns
+#TIMEGRP "data" OFFSET = OUT 9.2 ns AFTER "ifclk" RISING;
+##PKTEND Setup=14.6ns
+#TIMEGRP "pktend" OFFSET = OUT 14.6 ns AFTER "ifclk" RISING;
+##SLOE Setup=19.7ns (Custom)
+#TIMEGRP "sloe" OFFSET = OUT 19.7 ns AFTER "ifclk" RISING;
+##SLRD Setup=18.7ns
+#TIMEGRP "slrd" OFFSET = OUT 18.7 ns AFTER "ifclk" RISING;
+##SLWR Setup=18.1ns
+#TIMEGRP "slwr" OFFSET = OUT 18.1 ns AFTER "ifclk" RISING;
+##FIFO_ADDR Hold=10ns (Setup is 25ns, but it's longer than the period, so it is set in the clk before)
+#TIMEGRP "addr" OFFSET = OUT 10 ns AFTER "ifclk" RISING;
+
+#Floorplaining (11 cores)
+INST "fpga_top_inst/core_gen[0].first_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[0].frst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[0].frst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X68Y10:SLICE_X127Y43;
+AREA_GROUP "pblock_cr_gn[0].frst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X2Y10:DSP48_X3Y3;
+AREA_GROUP "pblock_cr_gn[0].frst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X3Y20:RAMB16_X5Y6;
+AREA_GROUP "pblock_cr_gn[0].frst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X3Y21:RAMB8_X5Y6;
+INST "fpga_top_inst/core_gen[1].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[1].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[1].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X68Y44:SLICE_X127Y75;
+AREA_GROUP "pblock_cr_gn[1].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X2Y11:DSP48_X3Y18;
+AREA_GROUP "pblock_cr_gn[1].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X3Y22:RAMB16_X5Y36;
+AREA_GROUP "pblock_cr_gn[1].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X3Y22:RAMB8_X5Y37;
+INST "fpga_top_inst/core_gen[2].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[2].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[2].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X68Y76:SLICE_X127Y107;
+AREA_GROUP "pblock_cr_gn[2].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X2Y19:DSP48_X3Y26;
+AREA_GROUP "pblock_cr_gn[2].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X3Y38:RAMB16_X5Y52;
+AREA_GROUP "pblock_cr_gn[2].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X3Y38:RAMB8_X5Y53;
+INST "fpga_top_inst/core_gen[3].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[3].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[3].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X68Y108:SLICE_X127Y139;
+AREA_GROUP "pblock_cr_gn[3].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X2Y27:DSP48_X3Y34;
+AREA_GROUP "pblock_cr_gn[3].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X3Y54:RAMB16_X5Y68;
+AREA_GROUP "pblock_cr_gn[3].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X3Y54:RAMB8_X5Y69;
+INST "fpga_top_inst/core_gen[4].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[4].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[4].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X116Y140:SLICE_X127Y189, SLICE_X86Y140:SLICE_X115Y191;
+AREA_GROUP "pblock_cr_gn[4].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X2Y35:DSP48_X3Y47;
+AREA_GROUP "pblock_cr_gn[4].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X3Y70:RAMB16_X5Y94;
+AREA_GROUP "pblock_cr_gn[4].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X3Y70:RAMB8_X5Y95;
+INST "fpga_top_inst/core_gen[5].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[5].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[5].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X82Y140:SLICE_X85Y175, SLICE_X80Y140:SLICE_X81Y183, SLICE_X42Y140:SLICE_X79Y191;
+AREA_GROUP "pblock_cr_gn[5].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X2Y70:RAMB16_X2Y78;
+AREA_GROUP "pblock_cr_gn[5].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X2Y70:RAMB8_X2Y79;
+INST "fpga_top_inst/core_gen[6].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[6].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[6].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X40Y140:SLICE_X41Y159, SLICE_X34Y140:SLICE_X39Y175, SLICE_X0Y140:SLICE_X33Y191;
+AREA_GROUP "pblock_cr_gn[6].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X0Y47:DSP48_X1Y35;
+AREA_GROUP "pblock_cr_gn[6].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X0Y70:RAMB16_X1Y94;
+AREA_GROUP "pblock_cr_gn[6].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X0Y70:RAMB8_X1Y95;
+INST "fpga_top_inst/core_gen[7].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[7].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[7].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X0Y108:SLICE_X59Y139;
+AREA_GROUP "pblock_cr_gn[7].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X0Y27:DSP48_X1Y34;
+AREA_GROUP "pblock_cr_gn[7].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X0Y54:RAMB16_X2Y68;
+AREA_GROUP "pblock_cr_gn[7].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X0Y54:RAMB8_X2Y69;
+INST "fpga_top_inst/core_gen[8].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[8].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[8].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X0Y76:SLICE_X59Y107;
+AREA_GROUP "pblock_cr_gn[8].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X0Y19:DSP48_X1Y26;
+AREA_GROUP "pblock_cr_gn[8].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X0Y38:RAMB16_X2Y52;
+AREA_GROUP "pblock_cr_gn[8].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X0Y38:RAMB8_X2Y53;
+INST "fpga_top_inst/core_gen[9].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[9].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[9].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X0Y44:SLICE_X59Y75;
+AREA_GROUP "pblock_cr_gn[9].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X0Y11:DSP48_X1Y18;
+AREA_GROUP "pblock_cr_gn[9].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X0Y22:RAMB16_X2Y36;
+AREA_GROUP "pblock_cr_gn[9].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X0Y22:RAMB8_X2Y37;
+INST "fpga_top_inst/core_gen[10].rest_iter.core_control_unit_inst" AREA_GROUP = "pblock_cr_gn[10].rst_itr.cr_cntrl_unt_inst";
+AREA_GROUP "pblock_cr_gn[10].rst_itr.cr_cntrl_unt_inst" RANGE=SLICE_X0Y16:SLICE_X67Y43;
+AREA_GROUP "pblock_cr_gn[10].rst_itr.cr_cntrl_unt_inst" RANGE=DSP48_X0Y4:DSP48_X1Y10;
+AREA_GROUP "pblock_cr_gn[10].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB16_X0Y8:RAMB16_X2Y20;
+AREA_GROUP "pblock_cr_gn[10].rst_itr.cr_cntrl_unt_inst" RANGE=RAMB8_X0Y8:RAMB8_X2Y21;
