@@ -72,5 +72,5 @@ to make them synchronous.
 Special Thanks
 --------------
 This Project was done in cooperation with
-* [Secure Systems Lab Vienna](www.seclab.tuwien.ac.at)
-* [Trustworks KG](www.trustworks.at)
+* [Secure Systems Lab Vienna](http://www.seclab.tuwien.ac.at)
+* [Trustworks KG](http://www.trustworks.at)
